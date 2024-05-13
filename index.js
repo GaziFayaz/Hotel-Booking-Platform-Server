@@ -31,8 +31,6 @@ async function run() {
 			.collection("roomCategories");
 
 		app.get("/room-categories", async (req, res) => {
-			// console.log(req.query)
-      // console.log(req.query.sorted)
       let option = {}
 			if (req.query?.sorted==="true") {
         // console.log(req.query.sorted)
@@ -41,9 +39,16 @@ async function run() {
         option = {}
 			}
 			const result = await roomCategoriesCollection.find({}, option).toArray();
-
 			res.send(result);
 		});
+		app.get("/room/:_id", async (req, res) => {
+			const _id = req.params._id
+			// console.log(_id)
+			const query = { _id: new ObjectId(_id)}
+			const result = await roomCategoriesCollection.findOne(query)
+			// console.log(result)
+			res.send(result)
+		})
 
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });
