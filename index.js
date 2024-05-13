@@ -64,8 +64,7 @@ async function run() {
 		});
 
 		app.post("/user-book-room/:uid", async (req, res) => {
-      
-      console.log("in update user with new room booking")
+			console.log("in update user with new room booking");
 			const uid = req.params.uid;
 			const roomId = req.body.roomId;
 			const query = { firebase_uid: uid };
@@ -83,15 +82,34 @@ async function run() {
 		});
 
 		app.get("/bookings", async (req, res) => {
-      
-      console.log("in bookings")
+			console.log("in bookings");
 			const result = await bookingsCollection.find().toArray();
 			res.send(result);
 		});
 
+		app.get("/user-bookings/:uid", async (req, res) => {
+			const uid = req.params.uid;
+			const user = await userCollection.findOne({ firebase_uid: uid });
+			const bookingIds = user.bookings;
+			// console.log(bookingIds);
+      const promises = bookingIds.map(async (bookingId) => {
+				const booking = await bookingsCollection.findOne({
+					_id: new ObjectId(bookingId),
+				});
+				// console.log("booking", booking);
+				const room = await roomCategoriesCollection.findOne({
+					category: booking.room,
+				});
+        return {...booking, ...room}
+			});
+      const data = await Promise.all(promises)
+      console.log("data", data)
+			res.send(data);
+		});
+
 		app.post("/booking", async (req, res) => {
-      console.log("in booking")
-      console.log(req.body)
+			console.log("in booking");
+			console.log(req.body);
 			const newBooking = req.body;
 			// console.log(newBooking)
 			const result = await bookingsCollection.insertOne(newBooking);
@@ -118,14 +136,15 @@ async function run() {
 			res.send(result);
 		});
 
-    app.post("/book-room/:roomId", async (req,res) => {
-      
-      console.log("in book room") 
-      const roomId = req.params.roomId
-      const query = { _id: new ObjectId(roomId)}
-      const result = await roomCategoriesCollection.updateOne(query, {$set: {availability: "Not Available"}});
-      res.send(result);
-    })
+		app.post("/book-room/:roomId", async (req, res) => {
+			console.log("in book room");
+			const roomId = req.params.roomId;
+			const query = { _id: new ObjectId(roomId) };
+			const result = await roomCategoriesCollection.updateOne(query, {
+				$set: { availability: "Not Available" },
+			});
+			res.send(result);
+		});
 
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });
