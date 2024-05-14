@@ -64,25 +64,17 @@ async function run() {
 		});
 
 		app.post("/user-book-room/:uid", async (req, res) => {
-			console.log("in update user with new room booking");
 			const uid = req.params.uid;
 			const roomId = req.body.roomId;
 			const query = { firebase_uid: uid };
-			// console.log("query", query)
-			// console.log(req.body.insertedId)
-			// console.log(uid)
 			const update = {
 				$push: { bookings: roomId },
 			};
-			// console.log(update)
-			// const  result = await userCollection.findOne(query)
 			const result = await userCollection.updateOne(query, update);
-			// console.log(result)
 			res.send(result);
 		});
 
 		app.get("/bookings", async (req, res) => {
-			console.log("in bookings");
 			const result = await bookingsCollection.find().toArray();
 			res.send(result);
 		});
@@ -103,13 +95,10 @@ async function run() {
 				return { ...room, ...booking };
 			});
 			const data = await Promise.all(promises);
-			console.log("data", data);
 			res.send(data);
 		});
 
 		app.post("/booking", async (req, res) => {
-			console.log("in booking");
-			console.log(req.body);
 			const newBooking = req.body;
 			// console.log(newBooking)
 			const result = await bookingsCollection.insertOne(newBooking);
@@ -125,7 +114,6 @@ async function run() {
 				$set: { date: date },
 			};
 			const result = await bookingsCollection.updateOne(query, update, {upsert: true});
-			console.log(result)
 			res.send(result);
 		});
 
@@ -150,7 +138,6 @@ async function run() {
 		});
 
 		app.post("/book-room/:roomId", async (req, res) => {
-			console.log("in book room");
 			const roomId = req.params.roomId;
 			const query = { _id: new ObjectId(roomId) };
 			const result = await roomCategoriesCollection.updateOne(query, {
@@ -165,7 +152,7 @@ async function run() {
 			const result = await roomCategoriesCollection.updateOne(query, {
 				$set: { availability: "Available"},
 			})
-			console.log("unbook", result)
+			// console.log("unbook", result)
 			res.send(result)
 		})
 
@@ -175,14 +162,21 @@ async function run() {
 			const query = {firebase_uid: uid}
 			const update = {$pull: {bookings: bookingId}}
 			const result = await userCollection.updateOne(query, update)
-			console.log(result)
+			// console.log("booking removed from user bookings array", result)
+      res.send(result)
 		})
 
 		app.delete("/delete-book/:_id", async (req, res) => {
+      console.log("hello")
 			const _id = req.params._id
 			const query = {_id: new ObjectId(_id)}
-			const booking = await bookingsCollection.findOne(query)
-			console.log(booking)
+			const result = await bookingsCollection.deleteOne(query)
+			// if (result.deletedCount === 1) {
+      //   console.log("Successfully deleted one document.", result);
+      // } else {
+      //   console.log("No documents matched the query. Deleted 0 documents.", result);
+      // }
+      res.send(result)
 		})
 
 		// Send a ping to confirm a successful connection
