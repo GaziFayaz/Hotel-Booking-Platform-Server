@@ -92,7 +92,7 @@ async function run() {
 			const user = await userCollection.findOne({ firebase_uid: uid });
 			const bookingIds = user.bookings;
 			// console.log(bookingIds);
-      const promises = bookingIds.map(async (bookingId) => {
+			const promises = bookingIds.map(async (bookingId) => {
 				const booking = await bookingsCollection.findOne({
 					_id: new ObjectId(bookingId),
 				});
@@ -100,10 +100,10 @@ async function run() {
 				const room = await roomCategoriesCollection.findOne({
 					category: booking.room,
 				});
-        return {...booking, ...room}
+				return { ...room, ...booking };
 			});
-      const data = await Promise.all(promises)
-      console.log("data", data)
+			const data = await Promise.all(promises);
+			console.log("data", data);
 			res.send(data);
 		});
 
@@ -113,6 +113,19 @@ async function run() {
 			const newBooking = req.body;
 			// console.log(newBooking)
 			const result = await bookingsCollection.insertOne(newBooking);
+			res.send(result);
+		});
+
+		app.post("/update-booking-date/:_id", async (req, res) => {
+			const _id = req.params._id
+			const date = req.body.date;
+			console.log(date)
+			const query = { _id: new ObjectId(_id) };
+			const update = {
+				$set: { date: date },
+			};
+			const result = await bookingsCollection.updateOne(query, update, {upsert: true});
+			console.log(result)
 			res.send(result);
 		});
 
@@ -145,6 +158,32 @@ async function run() {
 			});
 			res.send(result);
 		});
+
+		app.post("/unbook-room/:room", async (req, res) => {
+			const room = req.params.room
+			const query = { category: room}
+			const result = await roomCategoriesCollection.updateOne(query, {
+				$set: { availability: "Available"},
+			})
+			console.log("unbook", result)
+			res.send(result)
+		})
+
+		app.post("/user-cancel-book/:uid", async(req, res) => {
+			const uid = req.params.uid
+			const bookingId = req.body.bookingId
+			const query = {firebase_uid: uid}
+			const update = {$pull: {bookings: bookingId}}
+			const result = await userCollection.updateOne(query, update)
+			console.log(result)
+		})
+
+		app.delete("/delete-book/:_id", async (req, res) => {
+			const _id = req.params._id
+			const query = {_id: new ObjectId(_id)}
+			const booking = await bookingsCollection.findOne(query)
+			console.log(booking)
+		})
 
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });
