@@ -35,6 +35,9 @@ async function run() {
 		const bookingsCollection = client
 			.db("B9A11-Hotel-Booking-Platform")
 			.collection("bookings");
+    const reviewCollection = client
+    .db("B9A11-Hotel-Booking-Platform")
+    .collection("reviews");
 
 		app.get("/users", async (req, res) => {
 			const cursor = userCollection.find();
@@ -167,7 +170,6 @@ async function run() {
 		})
 
 		app.delete("/delete-book/:_id", async (req, res) => {
-      console.log("hello")
 			const _id = req.params._id
 			const query = {_id: new ObjectId(_id)}
 			const result = await bookingsCollection.deleteOne(query)
@@ -178,6 +180,39 @@ async function run() {
       // }
       res.send(result)
 		})
+
+    app.post("/add-review", async (req, res) => {
+      const review = req.body
+      const result = await reviewCollection.insertOne(review)
+      res.send(result)
+    })
+
+    app.post("/add-review-to-user/:uid", async(req, res) => {
+      const uid = req.params.uid
+      const reviewId = req.body.reviewId
+      const query = {firebase_uid: uid}
+      const update = {$push: {reviews: reviewId}}
+      const result = await userCollection.updateOne(query, update)
+      res.send(result)
+    })
+
+    app.post("/add-review-to-room/:room", async(req, res) => {
+      const room = req.params.room
+      const reviewId = req.body.reviewId
+      const query = {category: room}
+      const update = {$push: {reviews: reviewId}}
+      const result = await roomCategoriesCollection.updateOne(query, update)
+      res.send(result)
+    })
+
+    app.post("/booking-reviewed/:bookingId", async(req, res) => {
+      const _id = req.params.bookingId
+      const query = {_id: new ObjectId(_id)}
+      const update = {$set: {reviewed:true}}
+      const result = await bookingsCollection.updateOne(query, update)
+      console.log(result)
+      res.send(result)
+    })
 
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });
