@@ -181,6 +181,22 @@ async function run() {
       res.send(result)
 		})
 
+		app.get("/all-reviews", async(req, res) => {
+			const result = await reviewCollection.find().toArray()
+			res.send(result)
+		})
+
+		app.get("/room-reviews/:room", async (req, res) => {
+			const room = req.params.room
+			const roomData = await roomCategoriesCollection.findOne({category: room})
+			const reviewIds = roomData.reviews.map(reviewId => new ObjectId(reviewId))
+			console.log(reviewIds)
+			const query = { _id: {$in: reviewIds}}
+			const reviews = await reviewCollection.find(query).toArray()
+			console.log(reviews)
+			res.send(reviews)
+		})
+
     app.post("/add-review", async (req, res) => {
       const review = req.body
       const result = await reviewCollection.insertOne(review)
