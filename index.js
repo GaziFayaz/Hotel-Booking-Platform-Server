@@ -9,7 +9,11 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(
 	cors({
-		origin: ["http://localhost:5173"],
+		origin: [
+			"http://localhost:5173",
+			"https://b9a11-hotel-booking-platform.web.app",
+			"https://b9a11-hotel-booking-platform.firebaseapp.com",
+		],
 	})
 );
 app.use(express.json());
@@ -35,9 +39,9 @@ async function run() {
 		const bookingsCollection = client
 			.db("B9A11-Hotel-Booking-Platform")
 			.collection("bookings");
-    const reviewCollection = client
-    .db("B9A11-Hotel-Booking-Platform")
-    .collection("reviews");
+		const reviewCollection = client
+			.db("B9A11-Hotel-Booking-Platform")
+			.collection("reviews");
 
 		app.get("/users", async (req, res) => {
 			const cursor = userCollection.find();
@@ -63,6 +67,7 @@ async function run() {
 			const newUser = req.body;
 			// console.log(newUser)
 			const result = await userCollection.insertOne(newUser);
+      console.log(result)
 			res.send(result);
 		});
 
@@ -109,14 +114,16 @@ async function run() {
 		});
 
 		app.post("/update-booking-date/:_id", async (req, res) => {
-			const _id = req.params._id
+			const _id = req.params._id;
 			const date = req.body.date;
-			console.log(date)
+			// console.log(date)
 			const query = { _id: new ObjectId(_id) };
 			const update = {
 				$set: { date: date },
 			};
-			const result = await bookingsCollection.updateOne(query, update, {upsert: true});
+			const result = await bookingsCollection.updateOne(query, update, {
+				upsert: true,
+			});
 			res.send(result);
 		});
 
@@ -150,91 +157,97 @@ async function run() {
 		});
 
 		app.post("/unbook-room/:room", async (req, res) => {
-			const room = req.params.room
-			const query = { category: room}
+			const room = req.params.room;
+			const query = { category: room };
 			const result = await roomCategoriesCollection.updateOne(query, {
-				$set: { availability: "Available"},
-			})
+				$set: { availability: "Available" },
+			});
 			// console.log("unbook", result)
-			res.send(result)
-		})
+			res.send(result);
+		});
 
-		app.post("/user-cancel-book/:uid", async(req, res) => {
-			const uid = req.params.uid
-			const bookingId = req.body.bookingId
-			const query = {firebase_uid: uid}
-			const update = {$pull: {bookings: bookingId}}
-			const result = await userCollection.updateOne(query, update)
+		app.post("/user-cancel-book/:uid", async (req, res) => {
+			const uid = req.params.uid;
+			const bookingId = req.body.bookingId;
+			const query = { firebase_uid: uid };
+			const update = { $pull: { bookings: bookingId } };
+			const result = await userCollection.updateOne(query, update);
 			// console.log("booking removed from user bookings array", result)
-      res.send(result)
-		})
+			res.send(result);
+		});
 
 		app.delete("/delete-book/:_id", async (req, res) => {
-			const _id = req.params._id
-			const query = {_id: new ObjectId(_id)}
-			const result = await bookingsCollection.deleteOne(query)
+			const _id = req.params._id;
+			const query = { _id: new ObjectId(_id) };
+			const result = await bookingsCollection.deleteOne(query);
 			// if (result.deletedCount === 1) {
-      //   console.log("Successfully deleted one document.", result);
-      // } else {
-      //   console.log("No documents matched the query. Deleted 0 documents.", result);
-      // }
-      res.send(result)
-		})
+			//   console.log("Successfully deleted one document.", result);
+			// } else {
+			//   console.log("No documents matched the query. Deleted 0 documents.", result);
+			// }
+			res.send(result);
+		});
 
-		app.get("/all-reviews", async(req, res) => {
-			const result = await reviewCollection.find({}, {sort: { _id: -1 }}).toArray()
-			res.send(result)
-		})
+		app.get("/all-reviews", async (req, res) => {
+			const result = await reviewCollection
+				.find({}, { sort: { _id: -1 } })
+				.toArray();
+			res.send(result);
+		});
 
 		app.get("/room-reviews/:room", async (req, res) => {
-			const room = req.params.room
-			const roomData = await roomCategoriesCollection.findOne({category: room})
-			const reviewIds = roomData.reviews.map(reviewId => new ObjectId(reviewId))
-			console.log(reviewIds)
-			const query = { _id: {$in: reviewIds}}
-			const reviews = await reviewCollection.find(query).toArray()
-			console.log(reviews)
-			res.send(reviews)
-		})
+			const room = req.params.room;
+			const roomData = await roomCategoriesCollection.findOne({
+				category: room,
+			});
+			const reviewIds = roomData.reviews.map(
+				(reviewId) => new ObjectId(reviewId)
+			);
+			// console.log(reviewIds)
+			const query = { _id: { $in: reviewIds } };
+			const reviews = await reviewCollection.find(query).toArray();
+			// console.log(reviews)
+			res.send(reviews);
+		});
 
-    app.post("/add-review", async (req, res) => {
-      const review = req.body
-      const result = await reviewCollection.insertOne(review)
-      res.send(result)
-    })
+		app.post("/add-review", async (req, res) => {
+			const review = req.body;
+			const result = await reviewCollection.insertOne(review);
+			res.send(result);
+		});
 
-    app.post("/add-review-to-user/:uid", async(req, res) => {
-      const uid = req.params.uid
-      const reviewId = req.body.reviewId
-      const query = {firebase_uid: uid}
-      const update = {$push: {reviews: reviewId}}
-      const result = await userCollection.updateOne(query, update)
-      res.send(result)
-    })
+		app.post("/add-review-to-user/:uid", async (req, res) => {
+			const uid = req.params.uid;
+			const reviewId = req.body.reviewId;
+			const query = { firebase_uid: uid };
+			const update = { $push: { reviews: reviewId } };
+			const result = await userCollection.updateOne(query, update);
+			res.send(result);
+		});
 
-    app.post("/add-review-to-room/:room", async(req, res) => {
-      const room = req.params.room
-      const reviewId = req.body.reviewId
-      const query = {category: room}
-      const update = {$push: {reviews: reviewId}}
-      const result = await roomCategoriesCollection.updateOne(query, update)
-      res.send(result)
-    })
+		app.post("/add-review-to-room/:room", async (req, res) => {
+			const room = req.params.room;
+			const reviewId = req.body.reviewId;
+			const query = { category: room };
+			const update = { $push: { reviews: reviewId } };
+			const result = await roomCategoriesCollection.updateOne(query, update);
+			res.send(result);
+		});
 
-    app.post("/booking-reviewed/:bookingId", async(req, res) => {
-      const _id = req.params.bookingId
-      const query = {_id: new ObjectId(_id)}
-      const update = {$set: {reviewed:true}}
-      const result = await bookingsCollection.updateOne(query, update)
-      console.log(result)
-      res.send(result)
-    })
+		app.post("/booking-reviewed/:bookingId", async (req, res) => {
+			const _id = req.params.bookingId;
+			const query = { _id: new ObjectId(_id) };
+			const update = { $set: { reviewed: true } };
+			const result = await bookingsCollection.updateOne(query, update);
+			// console.log(result)
+			res.send(result);
+		});
 
 		// Send a ping to confirm a successful connection
-		await client.db("admin").command({ ping: 1 });
-		console.log(
-			"Pinged your deployment. You successfully connected to MongoDB!"
-		);
+		// await client.db("admin").command({ ping: 1 });
+		// console.log(
+		// 	"Pinged your deployment. You successfully connected to MongoDB!"
+		// );
 	} finally {
 		// Ensures that the client will close when you finish/error
 	}
